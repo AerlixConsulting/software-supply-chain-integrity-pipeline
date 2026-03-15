@@ -1,84 +1,138 @@
 # Software Supply Chain Integrity Pipeline
 
-This project provides a framework for SBOM (Software Bill of Materials) governance and software supply chain integrity. It is designed to help organizations manage, analyze, and act upon dependency information in order to mitigate risks across the development lifecycle.
+[![CI](https://github.com/AerlixConsulting/software-supply-chain-integrity-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/AerlixConsulting/software-supply-chain-integrity-pipeline/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-## Purpose
+A **contract-ready reference implementation** for end-to-end software supply chain integrity, built by [Aerlix Consulting](https://aerlixconsulting.com). This pipeline demonstrates SBOM generation, dependency auditing, build attestation, and artifact verification aligned with SLSA, in-toto, NIST 800-53, and the NIST Cybersecurity Framework.
 
-Modern software supply chains rely on numerous third‑party components. Maintaining visibility into these dependencies and ensuring they meet organizational standards is critical. This repository implements a structured workflow to:
+---
 
-- Generate and ingest SBOMs from various sources.
-- Analyze packages and dependencies for known vulnerabilities and license compliance.
-- Score and categorize supply chain risks.
-- Enforce policies based on organizational risk appetite and compliance requirements.
-- Produce audit‑ready reports for regulators and stakeholders.
+## Capabilities
 
-The goal is to provide a repeatable, auditable process for supply chain integrity management.
+| Capability | Description | Standards Alignment |
+|---|---|---|
+| **SBOM Generation** | Produces CycloneDX 1.5 JSON SBOMs from `requirements.txt` lockfiles | CycloneDX 1.5, NTIA Minimum Elements |
+| **Dependency Audit** | Checks packages against a vulnerability feed and license policy | NIST SP 800-53 RA-5, SA-12 |
+| **Build Attestation** | Generates SLSA-inspired provenance in DSSE envelope format | SLSA v1.0, in-toto |
+| **Artifact Verification** | SHA-256/SHA-512 digest verification + RSA-PSS signature check | NIST SP 800-53 SI-7, CM-14 |
 
-## Key Features
+---
 
-- **SBOM ingestion and generation**: Support for CycloneDX, SPDX, and other SBOM formats.
-- **Vulnerability analysis**: Integration with vulnerability databases and CVE feeds to flag insecure components.
-- **License compliance**: Detection of incompatible or disallowed licenses.
-- **Risk scoring**: Customizable risk scoring based on CVSS, exploit maturity, and organizational impact.
-- **Policy enforcement**: Rules engine to block, warn, or allow components based on risk thresholds.
-- **Reporting**: Generation of summary and detailed reports for auditors and compliance teams.
-- **CI/CD integration**: Designed to plug into GitHub Actions, GitLab CI, or other pipelines to provide continuous assurance.
+## Repository Structure
 
-## Architecture Overview
+```
+software-supply-chain-integrity-pipeline/
+├── src/                        # Core Python modules
+│   ├── sbom_generator.py       # CycloneDX SBOM generation
+│   ├── dependency_audit.py     # Vulnerability & license audit
+│   ├── build_attestation.py    # SLSA/in-toto attestation generation
+│   ├── artifact_verifier.py    # Hashing & signature verification
+│   └── cli.py                  # Unified CLI entrypoint
+├── tests/                      # pytest test suite
+├── examples/                   # Sample inputs and outputs
+├── docs/                       # Deep documentation
+├── architecture/               # Mermaid architecture diagrams
+├── controls/                   # Compliance control mappings
+├── assets/                     # Diagrams and images
+├── tools/                      # Legacy workflow stubs
+├── .github/workflows/          # CI workflows
+├── pyproject.toml
+├── LICENSE
+└── README.md
+```
 
-At a high level, the pipeline performs the following steps:
-
-1. **Ingest**: Accept SBOMs generated from build tools or scans and normalize them.
-2. **Analyze**: Query vulnerability and license data for each component and compute risk scores.
-3. **Evaluate**: Apply policy rules to determine if components meet acceptance criteria.
-4. **Report**: Produce machine‑readable and human‑readable outputs summarizing findings.
-5. **Enforce**: Optionally block deployments or alert owners when high risk issues are detected.
-
-An architecture diagram can be placed in the `docs/` directory to illustrate data flow and system boundaries.
+---
 
 ## Quick Start
 
-The pipeline is written in Python and packaged as a reusable module. To run a basic analysis:
+### Prerequisites
 
-```
+- Python 3.10+
+- `pip`
+
+### Installation
+
+```bash
 git clone https://github.com/AerlixConsulting/software-supply-chain-integrity-pipeline.git
 cd software-supply-chain-integrity-pipeline
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-# Generate or place your SBOM file (CycloneDX JSON or SPDX)
-python tools/analyze_sbom.py --input path/to/sbom.json --output report.json
+pip install cryptography
 ```
 
-To run the test suite:
+### Generate an SBOM
 
+```bash
+python -m src.cli sbom \
+  --requirements examples/requirements.txt \
+  --output out/sbom.json
 ```
-pip install -r requirements-dev.txt
+
+### Audit Dependencies
+
+```bash
+python -m src.cli audit \
+  --requirements examples/requirements.txt \
+  --output out/risk_report.json
+```
+
+### Generate a Build Attestation
+
+```bash
+python -m src.cli attest \
+  --artifacts examples/artifact.bin \
+  --source-uri https://github.com/AerlixConsulting/software-supply-chain-integrity-pipeline \
+  --source-digest "$(git rev-parse HEAD)" \
+  --output out/attestation.json
+```
+
+### Verify an Artifact
+
+```bash
+python -m src.cli verify \
+  --artifact examples/artifact.bin \
+  --checksum examples/artifact.bin.sha256
+```
+
+---
+
+## Development
+
+```bash
+pip install ruff pytest cryptography
+ruff check src/ tests/
 pytest -v
 ```
 
-You can also integrate this into a CI pipeline using the provided GitHub Actions workflow in `.github/workflows/ci.yml`.
+---
 
-## Security & Compliance
+## Documentation
 
-This project follows secure coding practices:
+- [Architecture Overview](docs/architecture-overview.md)
+- [Use Cases](docs/use-cases.md)
+- [Design Decisions](docs/design-decisions.md)
+- [Control Mapping](controls/control-mapping.md)
+- [Roadmap](roadmap.md)
+- [Contributing](CONTRIBUTING.md)
 
-- Secrets and API keys should be provided via environment variables or a secrets manager (do not commit sensitive data).
-- Dependency versions are pinned and monitored via Dependabot and security scanning features.
-- Code scanning and automated tests validate functionality and guard against regressions.
-- See the accompanying `SECURITY.md` for details on vulnerability reporting and disclosure.
+---
 
-## Contributing
+## Architecture Diagrams
 
-Contributions are welcome! Please review the `CONTRIBUTING.md` for guidelines on how to propose changes, report issues, and submit pull requests. By participating in this project you agree to abide by the code of conduct outlined in `CODE_OF_CONDUCT.md`.
+- [System Context](architecture/system-context.md)
+- [Component Architecture](architecture/component-architecture.md)
+- [Data Flow](architecture/data-flow.md)
+- [Trust Boundaries](architecture/trust-boundaries.md)
+
+---
 
 ## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+Copyright 2024 Aerlix Consulting. Licensed under the [Apache License, Version 2.0](LICENSE).
+
+---
 
 ## Contact
 
-For questions or support, contact the maintainers at Aerlix Consulting:
-
-- Website: <https://aerlixconsulting.com>
-- Email: <dylan@aerlixconsulting.com>
+- **Website**: [aerlixconsulting.com](https://aerlixconsulting.com)
+- **Email**: [dylan@aerlixconsulting.com](mailto:dylan@aerlixconsulting.com)

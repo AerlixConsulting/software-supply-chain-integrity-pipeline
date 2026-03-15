@@ -1,0 +1,29 @@
+# Example requirements.txt for the Software Supply Chain Integrity Pipeline
+# Pinned versions for reproducible builds and SBOM accuracy.
+# Managed by: engineering@aerlixconsulting.com
+
+# HTTP client
+requests==2.31.0
+
+# YAML parser (safe_load usage required)
+PyYAML==6.0.1
+
+# Cryptography — hashing, signing, verification
+cryptography==46.0.5
+
+# CLI framework
+click==8.1.7
+
+# Rich terminal output
+rich==13.7.0
+
+# Packaging utilities (version comparisons)
+packaging==23.2
+
+# Certificate authority bundle
+certifi==2024.2.2
+
+# HTTP / requests transitive deps
+charset-normalizer==3.3.2
+urllib3==2.6.3
+idna==3.6
