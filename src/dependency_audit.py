@@ -66,13 +66,55 @@ _VULN_FEED: dict[str, list[dict[str, Any]]] = {
     ],
     "cryptography": [
         {
+            "id": "CVE-2024-26130",
+            "severity": "HIGH",
+            "cvss": 7.5,
+            "affected_versions": [">=38.0.0,<42.0.4"],
+            "description": "NULL pointer dereference with pkcs12.serialize_key_and_certificates when called with a non-matching certificate and private key and an hmac_hash override.",
+            "remediation": "Upgrade to cryptography>=42.0.4",
+        },
+        {
             "id": "CVE-2023-49083",
             "severity": "LOW",
             "cvss": 4.0,
-            "affected_versions": ["<41.0.6"],
-            "description": "NULL pointer dereference in PKCS12 parsing.",
-            "remediation": "Upgrade to cryptography>=41.0.6",
-        }
+            "affected_versions": ["<42.0.0"],
+            "description": "Python Cryptography package vulnerable to Bleichenbacher timing oracle attack.",
+            "remediation": "Upgrade to cryptography>=42.0.0",
+        },
+        {
+            "id": "CVE-2025-29083",
+            "severity": "HIGH",
+            "cvss": 7.4,
+            "affected_versions": ["<=46.0.4"],
+            "description": "cryptography vulnerable to a Subgroup Attack due to missing subgroup validation for SECT curves.",
+            "remediation": "Upgrade to cryptography>=46.0.5",
+        },
+    ],
+    "urllib3": [
+        {
+            "id": "CVE-2025-50181",
+            "severity": "HIGH",
+            "cvss": 7.5,
+            "affected_versions": [">=1.22,<2.6.3"],
+            "description": "Decompression-bomb safeguards bypassed when following HTTP redirects (streaming API).",
+            "remediation": "Upgrade to urllib3>=2.6.3",
+        },
+        {
+            "id": "CVE-2025-50180",
+            "severity": "HIGH",
+            "cvss": 7.5,
+            "affected_versions": [">=1.0,<2.6.0"],
+            "description": "urllib3 streaming API improperly handles highly compressed data, allowing decompression bombs.",
+            "remediation": "Upgrade to urllib3>=2.6.0",
+        },
+        {
+            "id": "CVE-2025-50182",
+            "severity": "HIGH",
+            "cvss": 7.5,
+            "affected_versions": [">=1.24,<2.6.0"],
+            "description": "urllib3 allows an unbounded number of links in the decompression chain.",
+            "remediation": "Upgrade to urllib3>=2.6.0",
+        },
     ],
 }
 
@@ -197,21 +239,34 @@ def _version_tuple(version: str) -> tuple[int, ...]:
 
 
 def _is_affected(pkg_version: str, affected_spec: str) -> bool:
-    """Return True if *pkg_version* satisfies *affected_spec* (e.g. '<2.31.0')."""
-    if affected_spec.startswith("<"):
-        threshold = _version_tuple(affected_spec[1:])
-        return _version_tuple(pkg_version) < threshold
-    if affected_spec.startswith("<="):
-        threshold = _version_tuple(affected_spec[2:])
-        return _version_tuple(pkg_version) <= threshold
-    if affected_spec.startswith(">="):
-        threshold = _version_tuple(affected_spec[2:])
-        return _version_tuple(pkg_version) >= threshold
-    if affected_spec.startswith(">"):
-        threshold = _version_tuple(affected_spec[1:])
-        return _version_tuple(pkg_version) > threshold
-    if affected_spec.startswith("=="):
-        return pkg_version == affected_spec[2:]
+    """Return True if *pkg_version* satisfies *affected_spec*.
+
+    Supports single constraints (e.g. ``'<2.31.0'``, ``'<=46.0.4'``) and
+    compound comma-separated ranges (e.g. ``'>=38.0.0,<42.0.4'``).  All
+    clauses in a compound spec must be satisfied for the function to return
+    ``True``.
+    """
+    # Split compound specs (e.g. ">=38.0.0,<42.0.4") into individual clauses
+    clauses = [c.strip() for c in affected_spec.split(",") if c.strip()]
+    return all(_match_single_clause(pkg_version, clause) for clause in clauses)
+
+
+def _match_single_clause(pkg_version: str, clause: str) -> bool:
+    """Evaluate a single version constraint clause against *pkg_version*.
+
+    Operators ``<=`` and ``>=`` are checked before ``<`` and ``>`` to avoid
+    prefix-match ambiguity.
+    """
+    if clause.startswith("<="):
+        return _version_tuple(pkg_version) <= _version_tuple(clause[2:])
+    if clause.startswith(">="):
+        return _version_tuple(pkg_version) >= _version_tuple(clause[2:])
+    if clause.startswith("<"):
+        return _version_tuple(pkg_version) < _version_tuple(clause[1:])
+    if clause.startswith(">"):
+        return _version_tuple(pkg_version) > _version_tuple(clause[1:])
+    if clause.startswith("=="):
+        return pkg_version == clause[2:]
     return False
 
 

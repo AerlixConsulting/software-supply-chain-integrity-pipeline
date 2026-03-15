@@ -1,10 +1,10 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:80f6a52c-7552-43f9-8921-32e571d8a747",
+  "serialNumber": "urn:uuid:9bb02c6d-2994-45a1-8022-0e05b9650a65",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-03-15T22:43:08.419715+00:00",
+    "timestamp": "2026-03-15T22:56:32.187218+00:00",
     "tools": [
       {
         "vendor": "Aerlix Consulting",
@@ -49,10 +49,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "9b8716fec68752b5",
+      "bom-ref": "9474570199b26311",
       "name": "cryptography",
-      "version": "41.0.7",
-      "purl": "pkg:pypi/cryptography@41.0.7",
+      "version": "46.0.5",
+      "purl": "pkg:pypi/cryptography@46.0.5",
       "licenses": [
         {
           "license": {
@@ -133,10 +133,10 @@
     },
     {
       "type": "library",
-      "bom-ref": "51a8d6623514d7df",
+      "bom-ref": "bf0712f6f7344476",
       "name": "urllib3",
-      "version": "2.2.1",
-      "purl": "pkg:pypi/urllib3@2.2.1",
+      "version": "2.6.3",
+      "purl": "pkg:pypi/urllib3@2.6.3",
       "licenses": [
         {
           "license": {

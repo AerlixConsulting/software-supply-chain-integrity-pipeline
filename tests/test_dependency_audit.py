@@ -23,6 +23,8 @@ import pytest
 
 from src.dependency_audit import (
     AuditReport,
+    _is_affected,
+    _match_single_clause,
     audit_package,
     audit_requirements,
     audit_requirements_to_file,
@@ -82,6 +84,142 @@ def test_audit_package_critical_vulnerability() -> None:
 def test_audit_package_unknown_package_no_findings() -> None:
     findings = audit_package("some-unknown-lib", "1.0.0")
     # No vulns in feed for unknown lib; license is NOASSERTION (in allowed set)
+    vuln_findings = [f for f in findings if f.finding_type == "VULNERABILITY"]
+    assert len(vuln_findings) == 0
+
+
+# ---------------------------------------------------------------------------
+# _match_single_clause / _is_affected — version comparison correctness
+# ---------------------------------------------------------------------------
+
+
+def test_match_single_clause_lt() -> None:
+    assert _match_single_clause("2.28.0", "<2.31.0") is True
+    assert _match_single_clause("2.31.0", "<2.31.0") is False
+
+
+def test_match_single_clause_lte() -> None:
+    assert _match_single_clause("46.0.4", "<=46.0.4") is True
+    assert _match_single_clause("46.0.5", "<=46.0.4") is False
+
+
+def test_match_single_clause_gte() -> None:
+    assert _match_single_clause("38.0.0", ">=38.0.0") is True
+    assert _match_single_clause("37.9.9", ">=38.0.0") is False
+
+
+def test_match_single_clause_gt() -> None:
+    assert _match_single_clause("2.0.0", ">1.24") is True
+    assert _match_single_clause("1.0.0", ">1.24") is False
+
+
+def test_match_single_clause_eq() -> None:
+    assert _match_single_clause("2.31.0", "==2.31.0") is True
+    assert _match_single_clause("2.31.1", "==2.31.0") is False
+
+
+def test_is_affected_compound_in_range() -> None:
+    # cryptography 41.0.7 is in range >=38.0.0,<42.0.4
+    assert _is_affected("41.0.7", ">=38.0.0,<42.0.4") is True
+
+
+def test_is_affected_compound_below_lower_bound() -> None:
+    # 37.0.0 is below >=38.0.0 lower bound
+    assert _is_affected("37.0.0", ">=38.0.0,<42.0.4") is False
+
+
+def test_is_affected_compound_at_upper_bound() -> None:
+    # 42.0.4 equals the exclusive upper bound — should NOT be affected
+    assert _is_affected("42.0.4", ">=38.0.0,<42.0.4") is False
+
+
+def test_is_affected_compound_urllib3_affected() -> None:
+    # urllib3 2.2.1 is in range >=1.22,<2.6.3
+    assert _is_affected("2.2.1", ">=1.22,<2.6.3") is True
+
+
+def test_is_affected_compound_urllib3_patched() -> None:
+    # urllib3 2.6.3 is at the exclusive upper bound — should NOT be affected
+    assert _is_affected("2.6.3", ">=1.22,<2.6.3") is False
+
+
+def test_is_affected_lte_operator() -> None:
+    # Subgroup attack: <=46.0.4 — versions at and below are affected
+    assert _is_affected("46.0.4", "<=46.0.4") is True
+    assert _is_affected("46.0.5", "<=46.0.4") is False
+
+
+# ---------------------------------------------------------------------------
+# New CVEs in feed
+# ---------------------------------------------------------------------------
+
+
+def test_cryptography_null_ptr_deref_affected() -> None:
+    # CVE-2024-26130: >=38.0.0,<42.0.4 — 41.0.7 is in range
+    findings = audit_package("cryptography", "41.0.7")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2024-26130" in cves
+
+
+def test_cryptography_null_ptr_deref_patched() -> None:
+    # 42.0.4 is the patched boundary — should not be affected
+    findings = audit_package("cryptography", "42.0.4")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2024-26130" not in cves
+
+
+def test_cryptography_subgroup_attack_affected() -> None:
+    # CVE-2025-29083: <=46.0.4 — 41.0.7 is affected
+    findings = audit_package("cryptography", "41.0.7")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2025-29083" in cves
+
+
+def test_cryptography_subgroup_attack_patched() -> None:
+    # 46.0.5 is the patched version
+    findings = audit_package("cryptography", "46.0.5")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2025-29083" not in cves
+
+
+def test_cryptography_bleichenbacher_affected() -> None:
+    # CVE-2023-49083 (Bleichenbacher): <42.0.0 — 41.0.7 is affected
+    findings = audit_package("cryptography", "41.0.7")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2023-49083" in cves
+
+
+def test_cryptography_bleichenbacher_patched() -> None:
+    # 42.0.0 is the patched version
+    findings = audit_package("cryptography", "42.0.0")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2023-49083" not in cves
+
+
+def test_urllib3_decompression_bomb_affected() -> None:
+    # CVE-2025-50181: >=1.22,<2.6.3 — 2.2.1 is affected
+    findings = audit_package("urllib3", "2.2.1")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2025-50181" in cves
+
+
+def test_urllib3_decompression_bomb_patched() -> None:
+    # 2.6.3 is the patched version
+    findings = audit_package("urllib3", "2.6.3")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2025-50181" not in cves
+
+
+def test_urllib3_unbounded_chain_affected() -> None:
+    # CVE-2025-50182: >=1.24,<2.6.0 — 2.2.1 is affected
+    findings = audit_package("urllib3", "2.2.1")
+    cves = [f.cve_id for f in findings if f.finding_type == "VULNERABILITY"]
+    assert "CVE-2025-50182" in cves
+
+
+def test_urllib3_fully_patched() -> None:
+    # urllib3 2.6.3 should have no vulnerability findings
+    findings = audit_package("urllib3", "2.6.3")
     vuln_findings = [f for f in findings if f.finding_type == "VULNERABILITY"]
     assert len(vuln_findings) == 0
 

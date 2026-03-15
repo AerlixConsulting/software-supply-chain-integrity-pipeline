@@ -9,7 +9,7 @@ requests==2.31.0
 PyYAML==6.0.1
 
 # Cryptography — hashing, signing, verification
-cryptography==41.0.7
+cryptography==46.0.5
 
 # CLI framework
 click==8.1.7
@@ -25,5 +25,5 @@ certifi==2024.2.2
 
 # HTTP / requests transitive deps
 charset-normalizer==3.3.2
-urllib3==2.2.1
+urllib3==2.6.3
 idna==3.6
