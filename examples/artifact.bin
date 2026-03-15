@@ -1,0 +1,18 @@
+This is an example binary artifact produced by the Aerlix Consulting
+Software Supply Chain Integrity Pipeline build process.
+
+Build ID    : aerlix-pipeline-build-20240315-001
+Source URI  : https://github.com/AerlixConsulting/software-supply-chain-integrity-pipeline
+Commit SHA  : a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+Timestamp   : 2024-03-15T12:00:00Z
+Environment : github-actions / ubuntu-22.04
+Builder     : aerlix-sbom-generator v0.1.0
+
+INTEGRITY NOTE
+--------------
+The SHA-256 digest of this file is stored in artifact.bin.sha256.
+An RSA-PSS attestation envelope is available in attestation.json.
+Verify before deployment using:
+
+    python -m src.cli verify --artifact examples/artifact.bin \
+                             --checksum examples/artifact.bin.sha256

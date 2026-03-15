@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "software-supply-chain-integrity-pipeline"
+version = "0.1.0"
+description = "A reference implementation for software supply chain integrity: SBOM generation, dependency audit, build attestation, and artifact verification."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Aerlix Consulting", email = "engineering@aerlixconsulting.com" }]
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography>=41.0.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.3",
+]
+
+[project.scripts]
+pipeline = "src.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["E501", "B008", "UP007", "SIM108"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
